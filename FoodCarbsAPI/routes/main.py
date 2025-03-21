@@ -93,6 +93,7 @@ def search_foods():
         })
     return jsonify([])
 
+
 # Custom error handlers
 @main.app_errorhandler(404)
 def not_found_error(error):
