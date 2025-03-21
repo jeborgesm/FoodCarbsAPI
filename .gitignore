@@ -1,0 +1,8 @@
+.vs
+.env
+/env
+/FoodCarbsAPI/.venv
+/FoodCarbsAPI/__pycache__
+/FoodCarbsAPI/routes/__pycache__
+/logs/app.log
+/FoodCarbsAPI/logs/app.log
