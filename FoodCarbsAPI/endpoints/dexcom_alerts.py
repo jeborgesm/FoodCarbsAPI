@@ -1,6 +1,8 @@
 import requests
 from dotenv import load_dotenv
 import os
+import webbrowser
+from urllib.parse import urlencode, urlparse, parse_qs
 
 # Load environment variables from .env file
 load_dotenv()
@@ -9,17 +11,31 @@ load_dotenv()
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 REFRESH_TOKEN = os.getenv('REFRESH_TOKEN')
-
-# Dexcom API endpoints
+REDIRECT_URI = os.getenv('REDIRECT_URI')
+AUTHORIZATION_URL = 'https://sandbox-api.dexcom.com/v2/oauth2/login'
 TOKEN_URL = 'https://sandbox-api.dexcom.com/v2/oauth2/token'
 ALERTS_URL = 'https://sandbox-api.dexcom.com/v3/users/self/alerts'
 
-def get_access_token(client_id, client_secret, refresh_token):
+def get_authorization_code():
+    params = {
+        'client_id': CLIENT_ID,
+        'redirect_uri': REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'offline_access'
+    }
+    url = f"{AUTHORIZATION_URL}?{urlencode(params)}"
+    webbrowser.open(url)
+    redirect_response = input("Paste the full redirect URL here: ")
+    parsed_url = urlparse(redirect_response)
+    return parse_qs(parsed_url.query)['code'][0]
+
+def get_access_token(client_id, client_secret, authorization_code):
     payload = {
         'client_id': client_id,
         'client_secret': client_secret,
-        'refresh_token': refresh_token,
-        'grant_type': 'refresh_token'
+        'code': authorization_code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': REDIRECT_URI
     }
     response = requests.post(TOKEN_URL, data=payload)
     response.raise_for_status()
@@ -35,9 +51,11 @@ def get_alerts(access_token):
 
 if __name__ == '__main__':
     try:
-        access_token = get_access_token(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
+        authorization_code = get_authorization_code()
+        access_token = get_access_token(CLIENT_ID, CLIENT_SECRET, authorization_code)
         alerts = get_alerts(access_token)
         print(alerts)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
+
 
