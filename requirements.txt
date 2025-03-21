@@ -8,3 +8,4 @@ Flask-CORS==3.0.10
 psycopg2-binary==2.9.10
 SQLAlchemy==1.4.36
 blinker==1.4
+requests==2.26.0

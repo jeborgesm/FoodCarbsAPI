@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dexcom Alerts</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dexcom Alerts</h1>
+    {% if alerts %}
+    <table>
+        <tr>
+            <th>Alert Type</th>
+            <th>Alert Value</th>
+            <th>Timestamp</th>
+        </tr>
+        {% for alert in alerts %}
+        <tr>
+            <td>{{ alert.type }}</td>
+            <td>{{ alert.value }}</td>
+            <td>{{ alert.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>No alerts available.</p>
+    {% endif %}
+</body>
+</html>

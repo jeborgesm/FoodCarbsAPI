@@ -53,6 +53,9 @@
     <Content Include=".env" />
     <Content Include=".gitignore" />
     <Content Include="FoodCarbsAPI\Foods.csv" />
+    <Content Include="FoodCarbsAPI\templates\callback.html">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="requirements.txt" />
     <Content Include="vercel.json">
       <SubType>Code</SubType>
@@ -61,6 +64,7 @@
   <ItemGroup>
     <Folder Include="FoodCarbsAPI\" />
     <Folder Include="FoodCarbsAPI\endpoints\" />
+    <Folder Include="FoodCarbsAPI\templates\" />
     <Folder Include="FoodCarbsAPI\routes\" />
   </ItemGroup>
   <ItemGroup>
