@@ -14,8 +14,6 @@ class Food(db.Model):
     serving_quantity = db.Column(db.Float, nullable=True)
     countries = db.Column(db.String(255), nullable=True)
     image_nutrition_url = db.Column(db.String(255), nullable=True)
-    created_at = db.Column(db.DateTime, server_default=func.now())
-    updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now())
 
     # Add an index to the product_name column
     __table_args__ = (
@@ -36,8 +34,6 @@ class Food(db.Model):
             'serving_size': self.serving_size,
             'serving_quantity': self.serving_quantity,
             'countries': self.countries,
-            'image_nutrition_url': self.image_nutrition_url,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
+            'image_nutrition_url': self.image_nutrition_url
         }
 
