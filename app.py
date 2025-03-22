@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", category=SyntaxWarning)
+
 import logging
 from flask import Flask
 from flask_caching import Cache
