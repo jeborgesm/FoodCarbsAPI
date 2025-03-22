@@ -27,7 +27,7 @@ def callback():
 
 # CRUD operations for Food
 @main.route('/foods', methods=['GET'])
-@cache.cached(timeout=60)
+@cache.cached(timeout=300)
 def get_foods():
     foods = Food.query.all()
     return jsonify([food.to_dict() for food in foods])
