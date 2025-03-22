@@ -2,7 +2,6 @@ from flask import Blueprint, jsonify, request, redirect, url_for, render_templat
 from FoodCarbsAPI.models import db, Food
 from FoodCarbsAPI import cache  # Import the cache object
 import json
-import time
 
 main = Blueprint('main', __name__)
 
@@ -26,14 +25,7 @@ def callback():
         alerts = json.loads(alerts)  # Parse the JSON string into a Python dictionary
     return render_template('callback.html', alerts=alerts)
 
-# Generator function to stream data every 10 seconds
-def generate_foods():
-    while True:
-        foods = Food.query.all()
-        yield jsonify([food.to_dict() for food in foods]).get_data(as_text=True)
-        time.sleep(10)
-
-# Streaming route for foods
+# Route for foods with optional start and end parameters
 @main.route('/foods', methods=['GET'])
 def get_foods():
     try:
@@ -48,14 +40,14 @@ def get_foods():
 
         query = Food.query
         if end is not None:
-            query = query.slice(start, end)
+            foods = query.offset(start).limit(end - start).all()
         else:
-            query = query.offset(start)
+            foods = query.offset(start).all()
 
-        foods = query.all()
         return jsonify([food.to_dict() for food in foods])
     except ValueError:
         return jsonify({"error": "Invalid 'start' or 'end' parameter. They must be integers."}), 400
+
 
 @main.route('/foods/<int:id>', methods=['GET'])
 def get_food(id):
@@ -192,4 +184,3 @@ def food_to_dict(self):
     }
 
 Food.to_dict = food_to_dict
-
