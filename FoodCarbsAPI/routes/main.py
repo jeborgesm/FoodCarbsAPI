@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, redirect, url_for, render_template
 from FoodCarbsAPI.models import db, Food
+from FoodCarbsAPI import cache  # Import the cache object
 import json
 
 main = Blueprint('main', __name__)
@@ -26,6 +27,7 @@ def callback():
 
 # CRUD operations for Food
 @main.route('/foods', methods=['GET'])
+@cache.cached(timeout=60)
 def get_foods():
     foods = Food.query.all()
     return jsonify([food.to_dict() for food in foods])
@@ -72,6 +74,7 @@ def delete_food(id):
 
 # Live search route for product_name with pagination and sorting
 @main.route('/foods/search', methods=['GET'])
+@cache.cached(timeout=60, query_string=True)
 def search_foods():
     query = request.args.get('q', '')
     page = request.args.get('page', 1, type=int)
@@ -93,6 +96,21 @@ def search_foods():
         })
     return jsonify([])
 
+# New route for paginated foods retrieval
+@main.route('/foods/paginated', methods=['GET'])
+@cache.cached(timeout=60, query_string=True)
+def get_paginated_foods():
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 10000, type=int), 10000)  # Limit per_page to a maximum of 10000
+
+    foods = Food.query.paginate(page, per_page, False)
+    return jsonify({
+        'total': foods.total,
+        'pages': foods.pages,
+        'current_page': foods.page,
+        'per_page': foods.per_page,
+        'items': [food.to_dict() for food in foods.items]
+    })
 
 # Custom error handlers
 @main.app_errorhandler(404)
@@ -122,3 +140,4 @@ def food_to_dict(self):
     }
 
 Food.to_dict = food_to_dict
+

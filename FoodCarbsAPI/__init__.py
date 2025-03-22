@@ -9,6 +9,7 @@ from flask_bcrypt import Bcrypt
 from flask_restful import Api
 from flask_cors import CORS
 from sqlalchemy import MetaData
+from flask_caching import Cache
 from flask.signals import got_request_exception
 
 # Define naming conventions for foreign keys
@@ -21,6 +22,7 @@ db = SQLAlchemy(metadata=MetaData(naming_convention=convention))
 migrate = Migrate()
 bcrypt = Bcrypt()
 api = Api()
+cache = Cache()  # Initialize cache
 
 def create_app(config_class='FoodCarbsAPI.config.Config'):
     app = Flask(__name__)
@@ -32,6 +34,7 @@ def create_app(config_class='FoodCarbsAPI.config.Config'):
     bcrypt.init_app(app)
     api.init_app(app)
     CORS(app)
+    cache.init_app(app)  # Initialize cache with app
 
     # Import and register blueprints here
     from FoodCarbsAPI.routes.main import main as main_blueprint

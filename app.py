@@ -1,7 +1,12 @@
 import logging
+from flask import Flask
+from flask_caching import Cache
 from FoodCarbsAPI import create_app
 
 app = create_app()
+
+# Set up caching
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # Set up logging
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
