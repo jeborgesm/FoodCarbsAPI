@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request, redirect, url_for, render_template
+from flask import Blueprint, jsonify, request, redirect, url_for, render_template, Response, current_app
 from FoodCarbsAPI.models import db, Food
 from FoodCarbsAPI import cache  # Import the cache object
 import json
+import time
 
 main = Blueprint('main', __name__)
 
@@ -25,12 +26,36 @@ def callback():
         alerts = json.loads(alerts)  # Parse the JSON string into a Python dictionary
     return render_template('callback.html', alerts=alerts)
 
-# CRUD operations for Food
+# Generator function to stream data every 10 seconds
+def generate_foods():
+    while True:
+        foods = Food.query.all()
+        yield jsonify([food.to_dict() for food in foods]).get_data(as_text=True)
+        time.sleep(10)
+
+# Streaming route for foods
 @main.route('/foods', methods=['GET'])
-@cache.cached(timeout=300)
 def get_foods():
-    foods = Food.query.all()
-    return jsonify([food.to_dict() for food in foods])
+    try:
+        start = request.args.get('start', 0, type=int)
+        end = request.args.get('end', None, type=int)
+
+        if start < 0:
+            return jsonify({"error": "Invalid 'start' parameter. It must be a non-negative integer."}), 400
+
+        if end is not None and end <= start:
+            return jsonify({"error": "Invalid 'end' parameter. It must be greater than 'start'."}), 400
+
+        query = Food.query
+        if end is not None:
+            query = query.slice(start, end)
+        else:
+            query = query.offset(start)
+
+        foods = query.all()
+        return jsonify([food.to_dict() for food in foods])
+    except ValueError:
+        return jsonify({"error": "Invalid 'start' or 'end' parameter. They must be integers."}), 400
 
 @main.route('/foods/<int:id>', methods=['GET'])
 def get_food(id):
@@ -76,16 +101,29 @@ def delete_food(id):
 @main.route('/foods/search', methods=['GET'])
 @cache.cached(timeout=60, query_string=True)
 def search_foods():
-    query = request.args.get('q', '')
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    sort_by = request.args.get('sort_by', 'product_name')
-    order = request.args.get('order', 'asc')
+    try:
+        query = request.args.get('q', '')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        sort_by = request.args.get('sort_by', 'product_name')
+        order = request.args.get('order', 'asc')
 
-    if query:
-        sort_column = getattr(Food, sort_by, Food.product_name)
+        if page < 1:
+            return jsonify({"error": "Invalid 'page' parameter. It must be a positive integer."}), 400
+
+        if per_page < 1:
+            return jsonify({"error": "Invalid 'per_page' parameter. It must be a positive integer."}), 400
+
+        if order not in ['asc', 'desc']:
+            return jsonify({"error": "Invalid 'order' parameter. It must be 'asc' or 'desc'."}), 400
+
+        sort_column = getattr(Food, sort_by, None)
+        if sort_column is None:
+            return jsonify({"error": f"Invalid 'sort_by' parameter. It must be a valid column name."}), 400
+
         if order == 'desc':
             sort_column = sort_column.desc()
+
         foods = Food.query.filter(Food.product_name.ilike(f'%{query}%')).order_by(sort_column).paginate(page, per_page, False)
         return jsonify({
             'total': foods.total,
@@ -94,23 +132,37 @@ def search_foods():
             'per_page': foods.per_page,
             'items': [food.to_dict() for food in foods.items]
         })
-    return jsonify([])
+    except ValueError as e:
+        current_app.logger.error(f"ValueError in /foods/search: {e}")
+        return jsonify({"error": "Invalid 'page' or 'per_page' parameter. They must be integers."}), 400
+    except Exception as e:
+        current_app.logger.error(f"Unhandled exception in /foods/search: {e}")
+        return jsonify({"error": "An unexpected error occurred."}), 500
 
 # New route for paginated foods retrieval
 @main.route('/foods/paginated', methods=['GET'])
 @cache.cached(timeout=60, query_string=True)
 def get_paginated_foods():
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 10000, type=int), 10000)  # Limit per_page to a maximum of 10000
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 10000, type=int), 10000)  # Limit per_page to a maximum of 10000
 
-    foods = Food.query.paginate(page, per_page, False)
-    return jsonify({
-        'total': foods.total,
-        'pages': foods.pages,
-        'current_page': foods.page,
-        'per_page': foods.per_page,
-        'items': [food.to_dict() for food in foods.items]
-    })
+        if page < 1:
+            return jsonify({"error": "Invalid 'page' parameter. It must be a positive integer."}), 400
+
+        if per_page < 1:
+            return jsonify({"error": "Invalid 'per_page' parameter. It must be a positive integer."}), 400
+
+        foods = Food.query.paginate(page, per_page, False)
+        return jsonify({
+            'total': foods.total,
+            'pages': foods.pages,
+            'current_page': foods.page,
+            'per_page': foods.per_page,
+            'items': [food.to_dict() for food in foods.items]
+        })
+    except ValueError:
+        return jsonify({"error": "Invalid 'page' or 'per_page' parameter. They must be integers."}), 400
 
 # Custom error handlers
 @main.app_errorhandler(404)
@@ -140,3 +192,4 @@ def food_to_dict(self):
     }
 
 Food.to_dict = food_to_dict
+
