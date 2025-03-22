@@ -140,4 +140,3 @@ def food_to_dict(self):
     }
 
 Food.to_dict = food_to_dict
-
